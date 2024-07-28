@@ -1,0 +1,6 @@
+- [ ] Statistics in a separate window
+- [ ] Hints for tags
+- [ ] Markdown for comments
+- [ ] Quick search
+- [ ] "Feeling" of progress metric
+- [ ] The same date format
