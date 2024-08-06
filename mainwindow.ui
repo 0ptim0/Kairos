@@ -153,7 +153,7 @@
       <x>20</x>
       <y>50</y>
       <width>1041</width>
-      <height>581</height>
+      <height>421</height>
      </rect>
     </property>
     <property name="focusPolicy">
@@ -210,6 +210,16 @@
      </property>
     </column>
    </widget>
+   <widget class="QChartView" name="chart" native="true">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>480</y>
+      <width>500</width>
+      <height>200</height>
+     </rect>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
@@ -223,6 +233,14 @@
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QChartView</class>
+   <extends>QWidget</extends>
+   <header>QtCharts/QChartView</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

@@ -1,6 +1,8 @@
 #include "mainwindow.h"
 
+#include <QDir>
 #include <QTableView>
+#include <QVBoxLayout>
 #include <algorithm>
 
 #include "./ui_mainwindow.h"
@@ -13,8 +15,32 @@ MainWindow::MainWindow(QWidget *parent)
     ui->dateEdit->setDate(date);
 
     connect(ui->addButton, &QPushButton::clicked, this, &MainWindow::addRecord);
+    connect(ui->table, &QTableWidget::itemChanged, this,
+            &MainWindow::changeTableValue);
 
-    db.connect("./database.db");
+    QString homePath = QDir::homePath();
+    QString kairosPath = homePath + "/.kairos";
+    QDir dir(kairosPath);
+
+    if (!dir.exists()) {
+        if (dir.mkpath(".")) {
+            qDebug() << "Creating ~/.kairos";
+        } else {
+            qDebug() << "Failed to create ~/.kairos directory";
+        }
+    }
+    kairosPath = kairosPath + "/database.db";
+    db.connect(kairosPath);
+
+    chart = new ChartWidget();
+    if (ui->chart->layout() == nullptr) {
+        QVBoxLayout *layout = new QVBoxLayout(ui->chart);
+        layout->setAlignment(chart, Qt::AlignLeft);
+        layout->addWidget(chart);
+    } else {
+        ui->chart->layout()->addWidget(chart);
+    }
+
     updateTable();
 }
 
@@ -50,10 +76,12 @@ void MainWindow::addRecord() {
 void MainWindow::updateTable() {
     auto table = db.getRecords();
 
+    m_isProgrammaticChange = true;
+
     ui->table->setRowCount(table.size());
     ui->table->setColumnCount(5);
-    QStringList headers = {"Date", "Tags", "Hours", "Comment", ""};
     ui->table->setHorizontalHeaderLabels(headers);
+
 
     std::sort(table.begin(), table.end(), [](const Record &a, const Record &b) {
         return QDate::fromString(a.date, Qt::ISODate) >
@@ -69,8 +97,15 @@ void MainWindow::updateTable() {
         }
     }
 
+    row2Id.clear();
+    tag2Hours.clear();
+
+    unsigned maxId = 0;
+
     for (int row = 0; row < table.size(); ++row) {
         auto id = table[row].id;
+        row2Id.push_back(id);
+
         ui->table->setItem(row, 0, new QTableWidgetItem(table[row].date));
         ui->table->setItem(row, 1, new QTableWidgetItem(table[row].tags));
         ui->table->setItem(
@@ -85,11 +120,42 @@ void MainWindow::updateTable() {
         ui->table->setCellWidget(row, 4, removeButton);
         ui->table->setColumnWidth(4, 16);
         ui->table->setColumnWidth(3, 620);
+    
+        tag2Hours[table[row].tags] += table[row].hours;
+
+        maxId = std::max(maxId, id);
     }
+    
+    if (!isIdInit) {
+        id = maxId + 1;
+        isIdInit = true;
+    }
+
+    chart->update(tag2Hours);
+
+    m_isProgrammaticChange = false;
 }
 
 void MainWindow::removeRecord(unsigned id) {
+    m_isProgrammaticChange = true;
     if (db.removeRecord(id)) {
         updateTable();
     }
+    m_isProgrammaticChange = false;
+}
+
+void MainWindow::changeTableValue(QTableWidgetItem *index) {
+    if (m_isProgrammaticChange) {
+        return;
+    }
+    auto row = index->row();
+    if (row > row2Id.size()) {
+        qDebug() << "Wrong row";
+        return;
+    }
+    auto id = row2Id[row];
+    auto column = index->column();
+    auto value = index->text();
+    db.updateRecordById(id, headers[column], value);
+    updateTable();
 }

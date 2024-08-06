@@ -12,7 +12,6 @@ class DataBase {
 public:
     bool connect(const QString& path) {
         QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
-        bool dbExists = QFile::exists(path);
         db.setDatabaseName(path);
 
         if (!db.open()) {
@@ -43,8 +42,14 @@ public:
     }
 
     bool insertRecord(const Record& record) {
+        if (checkId(record.id)) {
+            qDebug() << "Error: ID is already present in the db";
+            return false;
+        }
         QSqlQuery query;
-        query.prepare("INSERT INTO records (id, date, tags, hours, comment) VALUES (:id, :date, :tags, :hours, :comment)");
+        query.prepare(
+            "INSERT INTO records (id, date, tags, hours, comment) VALUES (:id, "
+            ":date, :tags, :hours, :comment)");
         query.bindValue(":id", record.id);
         query.bindValue(":date", record.date);
         query.bindValue(":tags", record.tags);
@@ -56,6 +61,24 @@ public:
             return false;
         }
         return true;
+    }
+
+    bool checkId(unsigned id) {
+        QSqlQuery query;
+        query.prepare(QString("SELECT COUNT(*) FROM %1 WHERE id = :id").arg("records"));
+        query.bindValue(":id", id);
+
+        if (!query.exec()) {
+            qDebug() << "Error: failed to execute query -" << query.lastError();
+            return false;
+        }
+
+        if (query.next()) {
+            int count = query.value(0).toInt();
+            return count > 0;
+        }
+
+        return false;
     }
 
     std::vector<Record> getRecords() {
@@ -72,13 +95,11 @@ public:
                 float hours = query.value(3).toFloat();
                 QString comment = query.value(4).toString();
                 qDebug() << id << date << tags << hours << comment;
-                Record record = {
-                    .id = id,
-                    .date = date,
-                    .tags = tags,
-                    .hours = hours,
-                    .comment = comment
-                };
+                Record record = {.id = id,
+                                 .date = date,
+                                 .tags = tags,
+                                 .hours = hours,
+                                 .comment = comment};
                 records.push_back(record);
             }
         }
@@ -93,6 +114,24 @@ public:
         if (!query.exec()) {
             qDebug() << "Error: Unable to delete record!";
             qDebug() << query.lastError().text();
+            return false;
+        }
+        return true;
+    }
+
+    bool updateRecordById(int id, const QString& col, const QString& newValue) {
+        QSqlQuery query;
+
+        QString query_str = "UPDATE records SET ";
+        query_str += col;
+        query_str += " = :newValue WHERE id = :id";
+
+        query.prepare(query_str);
+        query.bindValue(":newValue", newValue);
+        query.bindValue(":id", id);
+
+        if (!query.exec()) {
+            qDebug() << "Update failed:" << query.lastError();
             return false;
         }
         return true;
