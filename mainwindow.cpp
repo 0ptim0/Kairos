@@ -35,6 +35,7 @@ MainWindow::MainWindow(QWidget *parent)
     chart = new ChartWidget();
     if (ui->chart->layout() == nullptr) {
         QVBoxLayout *layout = new QVBoxLayout(ui->chart);
+        layout->setAlignment(chart, Qt::AlignLeft);
         layout->addWidget(chart);
     } else {
         ui->chart->layout()->addWidget(chart);
@@ -99,6 +100,8 @@ void MainWindow::updateTable() {
     row2Id.clear();
     tag2Hours.clear();
 
+    unsigned maxId = 0;
+
     for (int row = 0; row < table.size(); ++row) {
         auto id = table[row].id;
         row2Id.push_back(id);
@@ -117,8 +120,15 @@ void MainWindow::updateTable() {
         ui->table->setCellWidget(row, 4, removeButton);
         ui->table->setColumnWidth(4, 16);
         ui->table->setColumnWidth(3, 620);
+    
+        tag2Hours[table[row].tags] += table[row].hours;
 
-        tag2Hours[table[row].tags.toStdString()] += table[row].hours;
+        maxId = std::max(maxId, id);
+    }
+    
+    if (!isIdInit) {
+        id = maxId + 1;
+        isIdInit = true;
     }
 
     chart->update(tag2Hours);
@@ -147,4 +157,5 @@ void MainWindow::changeTableValue(QTableWidgetItem *index) {
     auto column = index->column();
     auto value = index->text();
     db.updateRecordById(id, headers[column], value);
+    updateTable();
 }

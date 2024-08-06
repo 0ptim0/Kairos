@@ -28,12 +28,13 @@ private:
     Ui::MainWindow *ui;
     DataBase db;
     ChartWidget *chart;
-    unsigned id = 0;
+    unsigned id;
+    bool isIdInit = false;
 
 private:
     QStringList headers = {"Date", "Tags", "Hours", "Comment", ""};
     std::vector<int> row2Id;
-    std::unordered_map<std::string, float> tag2Hours;
+    std::unordered_map<QString, float> tag2Hours;
     bool m_isProgrammaticChange = false;
 
 private:

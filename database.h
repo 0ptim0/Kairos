@@ -42,6 +42,10 @@ public:
     }
 
     bool insertRecord(const Record& record) {
+        if (checkId(record.id)) {
+            qDebug() << "Error: ID is already present in the db";
+            return false;
+        }
         QSqlQuery query;
         query.prepare(
             "INSERT INTO records (id, date, tags, hours, comment) VALUES (:id, "
@@ -57,6 +61,24 @@ public:
             return false;
         }
         return true;
+    }
+
+    bool checkId(unsigned id) {
+        QSqlQuery query;
+        query.prepare(QString("SELECT COUNT(*) FROM %1 WHERE id = :id").arg("records"));
+        query.bindValue(":id", id);
+
+        if (!query.exec()) {
+            qDebug() << "Error: failed to execute query -" << query.lastError();
+            return false;
+        }
+
+        if (query.next()) {
+            int count = query.value(0).toInt();
+            return count > 0;
+        }
+
+        return false;
     }
 
     std::vector<Record> getRecords() {

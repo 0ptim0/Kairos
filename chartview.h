@@ -12,40 +12,48 @@ class ChartWidget : public QChartView {
 
 public:
     explicit ChartWidget(QWidget *parent = nullptr) : QChartView(parent) {
-        series = new QPieSeries();
         chart = new QChart();
         this->setRenderHint(QPainter::Antialiasing);
     }
 
-    bool update(const std::unordered_map<std::string, float> &slices) {
-        series->clear();
-        chart->removeAllSeries();
-
+    bool update(const std::unordered_map<QString, float> &slices) {
+        if (series != nullptr) {
+            // chart takes ownership of the series object
+            chart->removeAllSeries();
+        }
+        series = new QPieSeries();
+    
         for (auto &slice : slices) {
-            series->append(QString::fromStdString(slice.first), slice.second);
+            series->append(slice.first, slice.second);
         }
 
-        QList<QColor> colors = {QColor(0x1f77b4), QColor(0xff7f0e),
-                                QColor(0x2ca02c)};
         int i = 0;
         foreach (QPieSlice *slice, series->slices()) {
-            slice->setBrush(colors[i++ % colors.size()]);
             slice->setLabelVisible();
             slice->setLabelColor(Qt::white);
+            QFont labelFont = slice->labelFont();
+            labelFont.setPointSize(8);
+            slice->setLabelFont(labelFont);
         }
 
-        chart->setMinimumSize(500, 200);
-        chart->resize(500, 200);
-        chart->setMargins(QMargins(10, 10, 10, 10));
+        // chart->setMinimumSize(500, 200);
+        // chart->resize(500, 200);
+        // this->setFixedSize(500, 200);
+        // this->setAlignment(Qt::AlignLeft);
+        chart->setMargins(QMargins(1, 1, 1, 1));
 
         chart->setBackgroundBrush(Qt::NoBrush);
         chart->setBackgroundPen(Qt::NoPen);
         chart->setBackgroundRoundness(0);
 
         chart->addSeries(series);
+
         chart->legend()->hide();
+        // QLegend *legend = chart->legend();
+        // legend->setVisible(true);
+        // legend->setLabelColor(Qt::white);
+        // legend->setMarkerShape(QLegend::MarkerShapeFromSeries);
         this->setChart(chart);
-        // this->setStyleSheet("background: transparent; border: 0px;");
         return true;
     }
 
